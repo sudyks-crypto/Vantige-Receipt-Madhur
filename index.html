@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ಮಧೂರು ಶ್ರೀ ಕಾಳಿಕಾಂಬಾ ಮಠ - ರಶೀದಿ ಜನರೇಟರ್</title>
+    <!-- External Libraries for PDF and Excel generation -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .full-width { grid-column: span 2; }
+        h2 { color: #d32f2f; margin-top: 0; border-bottom: 2px solid #f4f7f6; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 15px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 8px; display: inline-block; text-align: center; box-sizing: border-box; }
+        .btn-pdf { background-color: #1e88e5; color: white; }
+        .btn-wa { background-color: #25d366; color: white; }
+        .btn-excel { background-color: #2e7d32; color: white; }
+        .btn-add { background-color: #ff9800; color: white; width: auto; padding: 10px 20px; }
+        .btn-danger { background-color: #e53935; color: white; padding: 5px 10px; font-size: 12px; width: auto; margin: 0; }
+        
+        /* Area Management List */
+        .area-list-container { max-height: 180px; overflow-y: auto; border: 1px solid #eee; padding: 10px; margin-top: 10px; border-radius: 4px; }
+        .area-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+        
+        /* Receipt Preview Styling (Hidden by default, used for PDF generation) */
+        #receipt-template { display: none; padding: 30px; border: 3px double #d32f2f; background: #fffbf5; border-radius: 8px; color: #000; }
+        .receipt-header { text-align: center; border-bottom: 2px dashed #d32f2f; padding-bottom: 15px; margin-bottom: 20px; }
+        .receipt-header h1 { margin: 0; font-size: 24px; color: #d32f2f; }
+        .receipt-meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; }
+        .receipt-body { font-size: 16px; line-height: 2.2; }
+        .receipt-footer { text-align: right; margin-top: 50px; font-weight: bold; border-top: 1px solid #ccc; padding-top: 10px; }
+        
+        /* Local Data Logs Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        
+        @media(max-width: 768px) { .grid-container { grid-template-columns: 1fr; } .full-width { grid-column: span 1; } }
+    </style>
+</head>
+<body>
+
+<div class="grid-container">
+    
+    <!-- LEFT PANEL: Create Receipt Form -->
+    <div class="card">
+        <h2>ರಶೀದಿ ರಚಿಸಿ (Create Receipt)</h2>
+        
+        <div class="form-group">
+            <label>ಕಂಪ್ಯೂಟರ್ ಮೆಂಬರ್ ಐಡಿ (Computer Mem ID):</label>
+            <input type="text" id="memId" placeholder="ಉದಾ: MEM101">
+        </div>
+
+        <div class="form-group">
+            <label>ಹೆಸರು (Name):</label>
+            <input type="text" id="custName" placeholder="ಹೆಸರನ್ನು ನಮೂದಿಸಿ">
+        </div>
+        
+        <div class="form-group">
+            <label>ಪ್ರದೇಶ ಆಯ್ಕೆ ಮಾಡಿ (Select Area):</label>
+            <select id="custArea">
+                <!-- Dynamically populated -->
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (Phone No):</label>
+            <input type="tel" id="custPhone" placeholder="10 ಅಂಕಿಗಳ ಸಂಖ್ಯೆ">
+        </div>
+
+        <div class="form-group">
+            <label>ಮೊತ್ತ (Amount ₹):</label>
+            <input type="number" id="amount" placeholder="0.00">
+        </div>
+
+        <button class="btn btn-pdf" onclick="generatePDF()">📥 PDF ಉಳಿಸಿ ಮತ್ತು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ</button>
+        <button class="btn btn-wa" onclick="shareOnWhatsApp()">💬 WhatsApp ನಲ್ಲಿ ಶೇರ್ ಮಾಡಿ</button>
+    </div>
+
+    <!-- RIGHT PANEL: Area Pool Management -->
+    <div class="card">
+        <h2>ಪ್ರದೇಶ ಡೇಟಾ ಪೂಲ್ ನಿರ್ವಹಣೆ (Manage Area Pool)</h2>
+        <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 5px;">
+            <input type="text" id="newAreaName" placeholder="ಹೊಸ ಪ್ರದೇಶದ ಹೆಸರು ಸೇರಿಸಿ">
+            <button class="btn btn-add" style="margin: 0;" onclick="addNewArea()">➕ ಸೇರಿಸಿ</button>
+        </div>
+        <div class="area-list-container" id="areaList">
+            <!-- Dynamic pool lists -->
+        </div>
+        
+        <h2 style="margin-top: 25px;">ವರದಿಗಳು (Reports)</h2>
+        <p style="font-size: 13px; color: #666;">ನಿಮ್ಮ ಕಂಪ್ಯೂಟರ್‌ನಲ್ಲಿ ಸೇವ್ ಆದ ಎಲ್ಲಾ ರಶೀದಿಗಳ ಡೇಟಾವನ್ನು Excel ಶೀಟ್‌ ರೂಪದಲ್ಲಿ ಪಡೆದುಕೊಳ್ಳಿ.</p>
+        <button class="btn btn-excel" onclick="exportToExcel()">📊 Excel Report ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ</button>
+    </div>
+
+    <!-- BOTTOM PANEL: Live View of Saved Receipts -->
+    <div class="card full-width">
+        <h2>ಇತ್ತೀಚಿನ ರಶೀದಿಗಳ ವಿವರ (Saved Receipts Logs)</h2>
+        <div style="overflow-x: auto;">
+            <table id="logsTable">
+                <thead>
+                    <tr>
+                        <th>Sl No</th>
+                        <th>ದಿನಾಂಕ (Date)</th>
+                        <th>Mem ID</th>
+                        <th>ಹೆಸರು (Name)</th>
+                        <th>ಪ್ರದೇಶ (Area)</th>
+                        <th>ಮೊಬೈಲ್ (Phone)</th>
+                        <th>ಮೊತ್ತ (Amount)</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                    <!-- Dynamic logs items -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- HIDDEN RECEIPT TEMPLATE FOR PRINTING -->
+<div id="receipt-template">
+    <div class="receipt-header">
+        <h1>ಮಧೂರು ಶ್ರೀ ಕಾಳಿಕಾಂಬಾ ಮಠ, ಮಧೂರು</h1>
+        <p style="margin: 5px 0 0 0; font-weight: bold; letter-spacing: 1px;">ಪಾವತಿ ರಶೀದಿ / PAYMENT RECEIPT</p>
+    </div>
+    <div class="receipt-meta">
+        <div><strong>ರಶೀದಿ ಸಂಖ‍್ಯೆ (Sl No):</strong> <span id="lblSlNo"></span></div>
+        <div><strong>ದಿನಾಂಕ (Date):</strong> <span id="lblDate"></span></div>
+    </div>
+    <div class="receipt-body">
+        <p><strong>ಸದಸ್ಯರ ಐಡಿ (Mem ID):</strong> <span id="lblMemId"></span></p>
+        <p><strong>ಶ್ರೀ/ಶ್ರೀಮತಿ (Name):</strong> <span id="lblName"></span></p>
+        <p><strong>ಊರು/ಪ್ರದೇಶ (Area):</strong> <span id="lblArea"></span></p>
+        <p><strong>ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (Phone):</strong> <span id="lblPhone"></span></p>
+        <hr style="border: 0; border-top: 2px dashed #d32f2f; margin: 20px 0;">
+        <p style="font-size: 20px; background: #f4f4f4; padding: 5px 15px; display: inline-block; border-radius: 4px;">
+            <strong>ಸ್ವೀಕರಿಸಿದ ಒಟ್ಟು ಮೊತ್ತ (Total Amount):</strong> <span style="color: #d32f2f; font-weight: bold;">₹ <span id="lblAmount"></span>/-</span>
+        </p>
+    </div>
+    <div class="receipt-footer">
+        <p>ಅಧಿಕೃತ ಪದಾಧಿಕಾರಿಗಳ ಸಹಿ</p>
+    </div>
+</div>
+
+<script>
+    // Initial Setup for local database simulation inside browser memory
+    if(!localStorage.getItem('slNo')) localStorage.setItem('slNo', '1001');
+    if(!localStorage.getItem('areasPool')) {
+        localStorage.setItem('areasPool', JSON.stringify(['ಮಧೂರು', 'ಕಾಸರಗೋಡು', 'ಕುಡ್ಲು', 'ಉಪ್ಪಳ', 'ಮಂಗಳೂರು']));
+    }
+    if(!localStorage.getItem('receiptsDatabase')) {
+        localStorage.setItem('receiptsDatabase', JSON.stringify([]));
+    }
+
+    const today = new Date();
+    const formattedDate = today.getDate() + '-' + (today.getMonth()+1) + '-' + today.getFullYear();
+
+    // Load data when page loads
+    window.onload = function() {
+        refreshAreaDropdown();
+        refreshLogsTable();
+    };
+
+    // AREA POOL MANAGEMENT FUNCTIONS
+    function refreshAreaDropdown() {
+        const areas = JSON.parse(localStorage.getItem('areasPool'));
+        const dropdown = document.getElementById('custArea');
+        const listContainer = document.getElementById('areaList');
+        
+        dropdown.innerHTML = '<option value="">-- ಪ್ರದೇಶ ಆಯ್ಕೆ ಮಾಡಿ --</option>';
+        listContainer.innerHTML = '';
+
+        areas.forEach((area, index) => {
+            // Fill Select Option Dropdown
+            dropdown.innerHTML += `<option value="${area}">${area}</option>`;
+            
+            // Fill Management Area Pool list item
+            listContainer.innerHTML += `
+                <div class="area-item">
+                    <span>${area}</span>
+                    <button class="btn btn-danger" onclick="deleteArea(${index})">❌ ತೆಗೆದುಹಾಕಿ</button>
+                </div>
+            `;
+        });
+    }
+
+    function addNewArea() {
+        const input = document.getElementById('newAreaName');
+        const value = input.value.trim();
+        if(!value) return alert("ದಯವಿಟ್ಟು ಪ್ರದೇಶದ ಹೆಸರನ್ನು ಬರೆಯಿರಿ!");
+        
+        let areas = JSON.parse(localStorage.getItem('areasPool'));
+        areas.push(value);
+        localStorage.setItem('areasPool', JSON.stringify(areas));
+        input.value = '';
+        refreshAreaDropdown();
+    }
+
+    function deleteArea(index) {
+        let areas = JSON.parse(localStorage.getItem('areasPool'));
+        areas.splice(index, 1);
+        localStorage.setItem('areasPool', JSON.stringify(areas));
+        refreshAreaDropdown();
+    }
+
+    // LOGS RECORDS MANAGEMENT FUNCTIONS
